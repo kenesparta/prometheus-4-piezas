@@ -1,0 +1,9 @@
+# Versión mínima soportada de Rust. Clippy desactiva sugerencias de features posteriores.
+msrv = "1.96"
+
+# Nombres de variable prohibidos (capturan placeholders olvidados).
+disallowed-names = ["foo", "bar", "baz", "tmp"]
+
+disallowed-macros = [
+    { path = "std::println", reason = "Usa `tracing::info!` o equivalente" },
+]

@@ -1,0 +1,101 @@
+# Pieza 1 (aplicada a una app real) — pokeapi: la demo interactiva en
+# Rust + Leptos que el público usa desde su navegador. Expone /metrics y el
+# Prometheus de la pieza 2 la scrapea como un target más (job "pokeapi").
+#
+# Requisitos antes de aplicar:
+#   1. Imagen publicada: la construye el CI/CD del repositorio
+#      (Forgejo/Codeberg) desde pokeapi/Dockerfile. Actualizar `image:` abajo
+#      a la ruta que publique ese CI/CD (la actual de GCP ya no existe).
+#   2. Secret con la URL de Redis (¡nunca se commitea!); las credenciales
+#      reales viven en k8s/secrets.local.yaml (gitignorado):
+#        kubectl apply -f k8s/secrets.local.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pokeapi
+  namespace: prometheus-demo
+  labels:
+    app: pokeapi
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pokeapi
+  template:
+    metadata:
+      labels:
+        app: pokeapi
+    spec:
+      containers:
+        - name: pokeapi
+          # TODO: apuntar a la imagen que publique el CI/CD (Forgejo/Codeberg);
+          # la ruta GCP de abajo ya no existe.
+          image: us-central1-docker.pkg.dev/kdc-lima/pokeapi/pokeapi:v1
+          ports:
+            - name: http
+              containerPort: 3000
+          env:
+            - name: REDIS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: pokeapi-redis
+                  key: REDIS_URL
+            # Password de la demo, tal como se cuenta en la charla (admin/123).
+            - name: ADMIN_PASSWORD
+              value: "123"
+            - name: RUST_LOG
+              value: "info,backend=info"
+          readinessProbe:
+            httpGet:
+              path: /salud
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /salud
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: "1"
+              memory: 512Mi
+---
+# Service interno: es el target que scrapea Prometheus (pokeapi:3000).
+apiVersion: v1
+kind: Service
+metadata:
+  name: pokeapi
+  namespace: prometheus-demo
+  labels:
+    app: pokeapi
+spec:
+  selector:
+    app: pokeapi
+  ports:
+    - name: http
+      port: 3000
+      targetPort: http
+---
+# Service público: la URL que se comparte con el público de la charla.
+# La IP externa sale con:
+#   kubectl -n prometheus-demo get svc pokeapi-publico
+apiVersion: v1
+kind: Service
+metadata:
+  name: pokeapi-publico
+  namespace: prometheus-demo
+  labels:
+    app: pokeapi
+spec:
+  type: LoadBalancer
+  selector:
+    app: pokeapi
+  ports:
+    - name: http
+      port: 80
+      targetPort: http

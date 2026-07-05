@@ -1,0 +1,25 @@
+[package]
+name = "bc-pokedex"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[lints.rust]
+unsafe_code = "forbid"
+
+# Bounded Context pokedex: consultas de pokémon contra la PokeAPI pública,
+# caché de fichas e historial de consultas.
+#
+# Reglas de dependencia:
+#  - SÍ:  shared-kernel, async-trait, thiserror, chrono, serde.
+#  - NO:  tokio, axum, redis, reqwest, ningún cliente concreto.
+#
+# La PokeAPI y Redis se alcanzan a través de puertos (`FuentePokemon`,
+# `CacheFichas`, `RegistroConsultas`) implementados en el binario.
+[dependencies]
+shared-kernel = { path = "../shared-kernel" }
+async-trait.workspace = true
+thiserror.workspace = true
+chrono.workspace = true
+serde.workspace = true

@@ -1,0 +1,100 @@
+# Pieza 2 + 4 — Configuración de Prometheus (scrape) y reglas de alerta.
+# Montado en /etc/prometheus dentro del pod de Prometheus.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+  namespace: prometheus-demo
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 15s
+
+    # Pieza 4: a dónde manda Prometheus las alertas que disparan.
+    alerting:
+      alertmanagers:
+        - static_configs:
+            - targets: ['alertmanager:9093']
+
+    # Carga las reglas de alerta (mismo ConfigMap, montado al lado).
+    rule_files:
+      - /etc/prometheus/alert.rules.yml
+
+    # Pieza 2: el "cableado". A quién va a buscar métricas y cada cuánto.
+    scrape_configs:
+      # Prometheus se scrapea a sí mismo (siempre UP, útil para la demo de /targets).
+      - job_name: 'prometheus'
+        static_configs:
+          - targets: ['localhost:9090']
+
+      # El exporter de la Pieza 1.
+      - job_name: 'node'
+        static_configs:
+          - targets: ['node-exporter:9100']
+
+      # La app interactiva de la demo (Rust + Leptos + Redis): un exporter
+      # "de verdad" hecho en casa. Requiere aplicar k8s/60-pokeapi.yaml.
+      - job_name: 'pokeapi'
+        static_configs:
+          - targets: ['pokeapi:3000']
+
+      # OPCIONAL (bonus "exporters para apps propias"): descomenta y aplica
+      # k8s/50-sample-app.yaml, luego recarga la config (ver DEMO.md).
+      # - job_name: 'app-ejemplo'
+      #   static_configs:
+      #     - targets: ['app-ejemplo:8080']
+
+  alert.rules.yml: |
+    groups:
+      - name: ejemplo
+        rules:
+          # Regla "real": sólo dispara si el CPU pasa del 80% (en la demo: Inactive/verde).
+          - alert: CPUAlto
+            expr: 100 - (avg(rate(node_cpu_seconds_total{mode="idle"}[1m])) * 100) > 80
+            for: 1m
+            labels:
+              severity: warning
+            annotations:
+              summary: "Uso de CPU por encima del 80%"
+
+          # Regla de DEMO: umbral bajísimo a propósito para verla disparar en vivo
+          # (cualquier uso de CPU > 1% la activa). Pasa a Firing/rojo en ~30s.
+          - alert: CPUAltoDemo
+            expr: 100 - (avg(rate(node_cpu_seconds_total{mode="idle"}[1m])) * 100) > 1
+            for: 30s
+            labels:
+              severity: warning
+            annotations:
+              summary: "[DEMO] Umbral bajísimo a propósito para ver el disparo en vivo"
+
+      # Alertas de la app pokeapi (k8s/60-pokeapi.yaml). Mismo mensaje de la
+      # charla: una alerta es una query PromQL + un umbral + un "for".
+      - name: pokeapi
+        rules:
+          # La app no responde al scrape: target DOWN.
+          - alert: PokeapiCaida
+            expr: up{job="pokeapi"} == 0
+            for: 1m
+            labels:
+              severity: critical
+            annotations:
+              summary: "La app pokeapi no responde al scrape"
+
+          # La app perdió Redis (gauge propio expuesto por la app).
+          - alert: PokeapiSinRedis
+            expr: pokeapi_redis_disponible == 0
+            for: 1m
+            labels:
+              severity: critical
+            annotations:
+              summary: "pokeapi no puede hablar con Redis"
+
+          # Regla de DEMO: umbral bajísimo a propósito. En cuanto el público
+          # empieza a usar la app (>0.5 req/s sostenidas) pasa a Firing.
+          - alert: PokeapiTraficoAltoDemo
+            expr: sum(rate(pokeapi_http_peticiones_total[1m])) > 0.5
+            for: 30s
+            labels:
+              severity: warning
+            annotations:
+              summary: "[DEMO] El público está usando la pokeapi (>0.5 req/s)"

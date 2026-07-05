@@ -1,0 +1,235 @@
+/* PokeAPI × Prometheus — tema oscuro compacto para proyectar en la charla. */
+
+:root {
+  --fondo: #0f1420;
+  --panel: #181f2e;
+  --panel-alto: #1f2940;
+  --borde: #2a3650;
+  --texto: #e8edf7;
+  --texto-suave: #93a1bd;
+  --acento: #ef4444;      /* rojo pokébola */
+  --acento-2: #f59e0b;    /* ámbar Prometheus */
+  --ok: #34d399;
+  --error: #f87171;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--fondo);
+  color: var(--texto);
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+h1 { font-size: 1.5rem; margin: 0 0 0.75rem; }
+h2 { font-size: 1.05rem; margin: 0; }
+code { background: var(--panel-alto); padding: 0.1em 0.35em; border-radius: 4px; font-size: 0.9em; }
+a { color: var(--acento-2); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* ---- Barra superior ---- */
+.barra {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.7rem 1.25rem;
+  background: var(--panel);
+  border-bottom: 1px solid var(--borde);
+}
+
+.marca {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 700;
+  color: var(--texto);
+  font-size: 1.1rem;
+}
+.marca small { color: var(--texto-suave); font-weight: 500; }
+.marca:hover { text-decoration: none; }
+
+.pokebola {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid var(--texto);
+  background: linear-gradient(to bottom, var(--acento) 0 45%, var(--texto) 45% 55%, #fff 55% 100%);
+}
+
+.barra nav { display: flex; align-items: center; gap: 0.8rem; }
+.barra nav a { color: var(--texto); }
+.usuario { color: var(--texto-suave); }
+
+/* ---- Chips ---- */
+.chip {
+  display: inline-block;
+  padding: 0.1rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  border: 1px solid var(--borde);
+  background: var(--panel-alto);
+}
+.chip.mini { font-size: 0.65rem; padding: 0 0.4rem; }
+.rol-admin { background: #7c2d12; border-color: #ea580c; color: #fdba74; }
+.rol-editor { background: #1e3a8a; border-color: #3b82f6; color: #93c5fd; }
+.rol-visitor { background: #14532d; border-color: #22c55e; color: #86efac; }
+.origen-cache { background: #713f12; border-color: var(--acento-2); color: #fcd34d; }
+.origen-api { background: #164e63; border-color: #06b6d4; color: #67e8f9; }
+
+/* ---- Layout ---- */
+.contenido {
+  max-width: 1080px;
+  margin: 1.5rem auto;
+  padding: 0 1.25rem;
+}
+
+.panel {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr;
+  gap: 1.25rem;
+  align-items: start;
+}
+@media (max-width: 820px) { .panel { grid-template-columns: 1fr; } }
+
+.tarjeta {
+  background: var(--panel);
+  border: 1px solid var(--borde);
+  border-radius: 12px;
+  padding: 1.25rem;
+}
+.tarjeta.formulario { max-width: 380px; margin: 3rem auto; }
+.tarjeta.ancha { width: 100%; }
+
+/* ---- Formularios ---- */
+label { display: block; margin-bottom: 0.8rem; color: var(--texto-suave); font-size: 0.9rem; }
+input {
+  display: block;
+  width: 100%;
+  margin-top: 0.3rem;
+  padding: 0.55rem 0.7rem;
+  border-radius: 8px;
+  border: 1px solid var(--borde);
+  background: var(--fondo);
+  color: var(--texto);
+  font-size: 1rem;
+}
+input:focus { outline: 2px solid var(--acento-2); border-color: transparent; }
+
+button {
+  padding: 0.55rem 1.1rem;
+  border-radius: 8px;
+  border: none;
+  background: var(--acento);
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+button:hover { filter: brightness(1.1); }
+button:disabled { opacity: 0.6; cursor: wait; }
+button.secundario { background: var(--panel-alto); border: 1px solid var(--borde); color: var(--texto); }
+button.peligro { background: #7f1d1d; border: 1px solid var(--error); }
+
+.formulario button[type="submit"] { width: 100%; margin-top: 0.4rem; }
+.pie { color: var(--texto-suave); font-size: 0.9rem; text-align: center; margin-bottom: 0; }
+
+/* ---- Buscador ---- */
+.buscador { display: flex; gap: 0.6rem; margin-bottom: 1rem; }
+.buscador input { margin: 0; flex: 1; }
+
+/* ---- Tarjeta pokémon ---- */
+.pokemon .cabecera-pokemon {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+.pokemon h1 { margin: 0; text-transform: none; }
+.numero { color: var(--texto-suave); font-weight: 500; }
+
+.cuerpo-pokemon { display: flex; gap: 1.25rem; margin-top: 1rem; align-items: flex-start; }
+.sprite {
+  width: 140px;
+  height: 140px;
+  image-rendering: pixelated;
+  background: var(--fondo);
+  border: 1px solid var(--borde);
+  border-radius: 12px;
+}
+.datos { flex: 1; }
+.tipos { margin: 0 0 0.5rem; display: flex; gap: 0.4rem; flex-wrap: wrap; }
+.medidas { color: var(--texto-suave); margin: 0 0 0.75rem; font-size: 0.9rem; }
+
+.estadisticas { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.35rem; }
+.estadisticas li { display: grid; grid-template-columns: 8.5rem 2.5rem 1fr; gap: 0.5rem; align-items: center; }
+.nombre-stat { color: var(--texto-suave); font-size: 0.8rem; }
+.valor-stat { font-variant-numeric: tabular-nums; font-size: 0.85rem; text-align: right; }
+.pista-barra { background: var(--fondo); border-radius: 999px; height: 8px; overflow: hidden; }
+.barra { background: linear-gradient(90deg, var(--acento-2), var(--acento)); height: 100%; border-radius: 999px; }
+
+/* Colores por tipo (los más comunes). */
+.tipo-fire { border-color: #f97316; color: #fdba74; }
+.tipo-water { border-color: #3b82f6; color: #93c5fd; }
+.tipo-grass { border-color: #22c55e; color: #86efac; }
+.tipo-electric { border-color: #eab308; color: #fde047; }
+.tipo-psychic { border-color: #ec4899; color: #f9a8d4; }
+.tipo-normal { border-color: #a8a29e; color: #d6d3d1; }
+
+/* ---- Historial ---- */
+.columna-lateral .encabezado-lateral {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.6rem;
+}
+.acciones { display: flex; gap: 0.4rem; }
+.acciones button { padding: 0.3rem 0.7rem; font-size: 0.8rem; }
+
+.historial { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.3rem; }
+.historial .fila {
+  display: grid;
+  grid-template-columns: 4.2rem 1fr auto 1.4rem;
+  gap: 0.5rem;
+  align-items: center;
+  background: var(--panel);
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+  padding: 0.4rem 0.6rem;
+  font-size: 0.85rem;
+}
+.historial .fila.fallida { opacity: 0.55; text-decoration: line-through; }
+.hora { color: var(--texto-suave); font-variant-numeric: tabular-nums; }
+.quien { display: flex; align-items: center; gap: 0.35rem; overflow: hidden; }
+.que { font-weight: 600; }
+
+/* ---- Tabla admin ---- */
+.tabla-usuarios { width: 100%; border-collapse: collapse; margin-top: 0.75rem; }
+.tabla-usuarios th, .tabla-usuarios td {
+  text-align: left;
+  padding: 0.5rem 0.6rem;
+  border-bottom: 1px solid var(--borde);
+}
+.tabla-usuarios th { color: var(--texto-suave); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; }
+.fecha { color: var(--texto-suave); font-variant-numeric: tabular-nums; }
+.botones-rol { display: flex; gap: 0.35rem; }
+.botones-rol button { padding: 0.25rem 0.6rem; font-size: 0.75rem; }
+
+/* ---- Avisos ---- */
+.pista { color: var(--texto-suave); font-size: 0.9rem; }
+.cargando { color: var(--texto-suave); }
+.aviso-error {
+  background: #450a0a;
+  border: 1px solid var(--error);
+  color: #fecaca;
+  border-radius: 8px;
+  padding: 0.55rem 0.8rem;
+  font-size: 0.9rem;
+}

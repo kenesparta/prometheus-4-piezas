@@ -1,0 +1,6 @@
+.DS_Store
+.idea
+.claude/skills
+
+# Credenciales locales (Secrets de k8s con valores reales) — nunca al repo
+*.local.yaml

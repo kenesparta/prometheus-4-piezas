@@ -1,0 +1,89 @@
+[package]
+name = "backend"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[dependencies]
+# UI Leptos: se compila también a wasm para la hidratación en el navegador.
+leptos.workspace = true
+leptos_meta.workspace = true
+leptos_router.workspace = true
+serde.workspace = true
+thiserror.workspace = true
+
+# Solo hidratación (artefacto wasm).
+console_error_panic_hook = { workspace = true, optional = true }
+wasm-bindgen = { workspace = true, optional = true }
+
+# Solo servidor (feature `ssr`). Los Bounded Contexts son server-only a
+# propósito: la UI habla con ellos a través de server functions y de los
+# view-models de `app/modelos.rs`, así el wasm no arrastra el dominio.
+shared-kernel = { path = "../../crates/shared-kernel", optional = true }
+bc-identidad = { path = "../../crates/bc-identidad", optional = true }
+bc-pokedex = { path = "../../crates/bc-pokedex", optional = true }
+leptos_axum = { workspace = true, optional = true }
+axum = { workspace = true, optional = true }
+tokio = { workspace = true, optional = true }
+redis = { workspace = true, optional = true }
+reqwest = { workspace = true, optional = true }
+prometheus = { workspace = true, optional = true }
+argon2 = { workspace = true, optional = true }
+rand_core = { workspace = true, optional = true }
+uuid = { workspace = true, optional = true }
+chrono = { workspace = true, optional = true }
+async-trait = { workspace = true, optional = true }
+anyhow = { workspace = true, optional = true }
+serde_json = { workspace = true, optional = true }
+tracing = { workspace = true, optional = true }
+tracing-subscriber = { workspace = true, optional = true }
+
+[features]
+default = []
+hydrate = ["leptos/hydrate", "dep:console_error_panic_hook", "dep:wasm-bindgen"]
+ssr = [
+    "leptos/ssr",
+    "leptos_meta/ssr",
+    "leptos_router/ssr",
+    "dep:leptos_axum",
+    "dep:axum",
+    "dep:tokio",
+    "dep:redis",
+    "dep:reqwest",
+    "dep:prometheus",
+    "dep:argon2",
+    "dep:rand_core",
+    "dep:uuid",
+    "dep:chrono",
+    "dep:async-trait",
+    "dep:anyhow",
+    "dep:serde_json",
+    "dep:tracing",
+    "dep:tracing-subscriber",
+    "dep:shared-kernel",
+    "dep:bc-identidad",
+    "dep:bc-pokedex",
+]
+
+# Configuración de cargo-leptos: compila el binario con `ssr` y la librería
+# wasm con `hydrate`, sirve estáticos desde target/site.
+[package.metadata.leptos]
+output-name = "pokeapi"
+site-root = "target/site"
+site-pkg-dir = "pkg"
+style-file = "style/main.css"
+site-addr = "127.0.0.1:3000"
+reload-port = 3001
+bin-features = ["ssr"]
+bin-default-features = false
+lib-features = ["hydrate"]
+lib-default-features = false
+lib-profile-release = "wasm-release"
+env = "DEV"

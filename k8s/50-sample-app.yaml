@@ -1,0 +1,52 @@
+# OPCIONAL — Bonus de la Pieza 1: una app propia instrumentada que expone
+# sus métricas en /metrics (puerto 8080), p. ej. http_requests_total.
+# Para usarla:
+#   1) kubectl apply -f k8s/50-sample-app.yaml
+#   2) Descomenta el job 'app-ejemplo' en k8s/20-prometheus-config.yaml
+#   3) kubectl apply -f k8s/20-prometheus-config.yaml
+#   4) curl -X POST http://localhost:9090/-/reload   (con port-forward activo)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-ejemplo
+  namespace: prometheus-demo
+  labels:
+    app: app-ejemplo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: app-ejemplo
+  template:
+    metadata:
+      labels:
+        app: app-ejemplo
+    spec:
+      containers:
+        - name: app
+          image: quay.io/brancz/prometheus-example-app:v0.5.0
+          ports:
+            - name: metrics
+              containerPort: 8080
+          resources:
+            requests:
+              cpu: 50m
+              memory: 32Mi
+            limits:
+              cpu: 200m
+              memory: 64Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: app-ejemplo
+  namespace: prometheus-demo
+  labels:
+    app: app-ejemplo
+spec:
+  selector:
+    app: app-ejemplo
+  ports:
+    - name: metrics
+      port: 8080
+      targetPort: 8080
