@@ -2,8 +2,8 @@
 //! hasher de passwords (Argon2id) y generador de tokens de sesión (UUID v4).
 
 use argon2::Argon2;
+use argon2::password_hash::rand_core::OsRng;
 use argon2::password_hash::{PasswordHash, PasswordHasher, PasswordVerifier, SaltString};
-use rand_core::OsRng;
 use bc_identidad::aplicacion::puertos::{ErrorHasher, GeneradorTokens, HasherPassword};
 use bc_identidad::dominio::modelo::HashPassword;
 

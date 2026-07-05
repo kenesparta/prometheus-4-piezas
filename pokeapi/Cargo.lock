@@ -243,7 +243,6 @@ dependencies = [
  "leptos_meta",
  "leptos_router",
  "prometheus",
- "rand_core 0.6.4",
  "redis",
  "reqwest",
  "serde",

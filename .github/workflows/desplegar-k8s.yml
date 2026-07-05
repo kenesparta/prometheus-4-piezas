@@ -43,16 +43,16 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Autenticar en GCP (OIDC, sin llaves)
-        uses: google-github-actions/auth@v2
+        uses: google-github-actions/auth@v3
         with:
           project_id: kdc-lima
           workload_identity_provider: projects/678255345312/locations/global/workloadIdentityPools/github-actions/providers/github-oidc
 
       - name: Credenciales del cluster
-        uses: google-github-actions/get-gke-credentials@v2
+        uses: google-github-actions/get-gke-credentials@v3
         with:
           cluster_name: ${{ env.GKE_CLUSTER }}
           location: ${{ env.GKE_LOCATION }}
