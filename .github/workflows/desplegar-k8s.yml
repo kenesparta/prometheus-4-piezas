@@ -1,0 +1,65 @@
+# Aplica los manifiestos de k8s/ contra el cluster GKE de la demo
+# (aprovisionado por Terraform desde OTRO repo: kcd-lima-k8s-kong/terraform;
+# aquí no se crea ni destruye infraestructura).
+#
+# Autenticación SIN llaves ni secrets (Workload Identity Federation): el run
+# pide un token OIDC a GitHub (permissions: id-token) y GCP lo acepta porque
+# el pool `github-actions` y el rol roles/container.developer para este repo
+# están declarados en ese repo de Terraform (github-actions.tf).
+#
+# OJO: k8s/secrets.local.yaml está gitignorado, así que el Secret
+# `pokeapi-redis` NO lo aplica este workflow: se aplica a mano una sola vez
+# (ver k8s/README.md).
+name: desplegar-k8s
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "k8s/**"
+      - ".github/workflows/desplegar-k8s.yml"
+  workflow_dispatch:
+
+# Nunca dos `kubectl apply` solapados; los pushes se aplican en orden.
+concurrency:
+  group: desplegar-k8s
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  # Token OIDC para autenticarse en GCP vía Workload Identity Federation.
+  id-token: write
+
+env:
+  GCP_PROJECT: kdc-lima
+  GKE_CLUSTER: kcd-main-cluster
+  # Zona del cluster (google_container_cluster en k8s-cluster.tf del repo de
+  # Terraform).
+  GKE_LOCATION: us-central1-c
+
+jobs:
+  desplegar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Autenticar en GCP (OIDC, sin llaves)
+        uses: google-github-actions/auth@v2
+        with:
+          project_id: kdc-lima
+          workload_identity_provider: projects/678255345312/locations/global/workloadIdentityPools/github-actions/providers/github-oidc
+
+      - name: Credenciales del cluster
+        uses: google-github-actions/get-gke-credentials@v2
+        with:
+          cluster_name: ${{ env.GKE_CLUSTER }}
+          location: ${{ env.GKE_LOCATION }}
+          project_id: ${{ env.GCP_PROJECT }}
+
+      - name: Aplicar manifiestos
+        run: |
+          kubectl apply -f k8s/
+          echo "--- Estado tras aplicar ---"
+          kubectl -n prometheus-demo get deploy,svc

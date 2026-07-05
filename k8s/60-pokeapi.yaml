@@ -3,9 +3,12 @@
 # Prometheus de la pieza 2 la scrapea como un target más (job "pokeapi").
 #
 # Requisitos antes de aplicar:
-#   1. Imagen publicada: la construye el CI/CD del repositorio
-#      (Forgejo/Codeberg) desde pokeapi/Dockerfile. Actualizar `image:` abajo
-#      a la ruta que publique ese CI/CD (la actual de GCP ya no existe).
+#   1. Imagen publicada: la construye GitHub Actions
+#      (.github/workflows/pokeapi-imagen.yml) desde pokeapi/Dockerfile y la
+#      publica en GitHub Packages como ghcr.io/kenesparta/pokeapi. Tras el
+#      primer push hay que hacer el package PÚBLICO (Package settings →
+#      Change visibility); si no, el pod cae en ImagePullBackOff por falta
+#      de imagePullSecret.
 #   2. Secret con la URL de Redis (¡nunca se commitea!); las credenciales
 #      reales viven en k8s/secrets.local.yaml (gitignorado):
 #        kubectl apply -f k8s/secrets.local.yaml
@@ -28,9 +31,9 @@ spec:
     spec:
       containers:
         - name: pokeapi
-          # TODO: apuntar a la imagen que publique el CI/CD (Forgejo/Codeberg);
-          # la ruta GCP de abajo ya no existe.
-          image: us-central1-docker.pkg.dev/kdc-lima/pokeapi/pokeapi:v1
+          # La publica .github/workflows/pokeapi-imagen.yml (GHCR); el
+          # package debe ser público para poder bajarla sin credenciales.
+          image: ghcr.io/kenesparta/pokeapi:latest
           ports:
             - name: http
               containerPort: 3000

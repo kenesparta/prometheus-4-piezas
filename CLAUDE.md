@@ -55,9 +55,13 @@ query introduced in the PromQL section).
 
 The demo runs on a **Kubernetes cluster (GKE) provisioned outside this repo** (Terraform,
 separate repo), accessed via `kubectl port-forward` so the guion's `localhost:9090/9100/9093`
-URLs work unchanged. **Deployment happens via Forgejo/Codeberg CI/CD from this repo** — do
-not add cluster-creation or deploy scripts here; `kubectl apply -f k8s/` is the manual
-fallback. Deliberately plain manifests — no Operator, no `kube-prometheus-stack` — so each
+URLs work unchanged. **Deployment happens via GitHub Actions from this repo**
+(`.github/workflows/desplegar-k8s.yml` applies `k8s/` on push, authenticating to GCP via
+Workload Identity Federation — no secrets, the IAM side lives in the cluster's Terraform
+repo; `pokeapi-imagen.yml` builds the pokeapi image and pushes it to GitHub Packages,
+`ghcr.io/kenesparta/pokeapi`, using the built-in `GITHUB_TOKEN` — the package must stay
+public so GKE pulls it without an imagePullSecret) — do not add cluster-creation or deploy scripts
+here; `kubectl apply -f k8s/` is the manual fallback. Deliberately plain manifests — no Operator, no `kube-prometheus-stack` — so each
 of the 4 pieces stays visible:
 
 - `node-exporter` (Deployment+Service, :9100) → Prometheus (Deployment+Service, :9090,
@@ -81,8 +85,9 @@ kubectl delete -f k8s/                # tear down
 
 ## Git notes
 
-- The repo uses **SHA-256 object format** (`extensions.objectformat = sha256`), so it is not
-  interoperable with default SHA-1 Git tooling/hosts.
-- The `origin` remote uses an SSH host alias: `cb:kenesparta/prometheus-4-piezas.git` (`cb:`
-  is defined in the user's `~/.ssh/config`, not a standard host).
-- There are **no commits yet** — the script is currently untracked.
+- The `origin` remote uses an SSH host alias: `gh:kenesparta/prometheus-4-piezas.git` (`gh:`
+  is defined in the user's `~/.ssh/config`, not a standard host; it points at GitHub).
+- The repo previously lived on Codeberg (Forgejo) with SHA-256 object format; it was
+  re-created on GitHub with standard SHA-1 history. CI/CD is **GitHub Actions**
+  (`.github/workflows/`), not Forgejo Actions — old docs or clones mentioning
+  Codeberg/`.forgejo/` are stale.

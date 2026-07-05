@@ -128,9 +128,13 @@ histogram_quantile(0.95, sum(rate(pokeapi_http_duracion_segundos_bucket[5m])) by
 
 ## Desplegar
 
-La imagen la construye y publica en Docker Hub el **CI/CD del repositorio**
-(workflow `.forgejo/workflows/pokeapi-imagen.yml`, Forgejo Actions) a partir
-de `pokeapi/Dockerfile`; `k8s/60-pokeapi.yaml` debe apuntar a esa imagen.
+La imagen la construye y publica en **GitHub Packages (GHCR)** el CI/CD del
+repositorio (workflow `.github/workflows/pokeapi-imagen.yml`) a partir de
+`pokeapi/Dockerfile`, como `ghcr.io/kenesparta/pokeapi:latest` (+ `:<sha12>`).
+Usa el `GITHUB_TOKEN` del propio workflow: no hay secrets que configurar.
+Tras el **primer** push hay que hacer el package **público** (página del
+package → Package settings → Change visibility) para que el cluster lo baje
+sin `imagePullSecret`; `k8s/60-pokeapi.yaml` ya apunta a esa imagen.
 Pasos manuales, si hacen falta:
 
 ```bash

@@ -1,11 +1,9 @@
 # Build multi-stage de la demo pokeapi (Leptos SSR + wasm).
 #
-# Construir para el cluster (amd64) sin Docker local, con Cloud Build:
-#   gcloud builds submit pokeapi/ \
-#     --tag us-central1-docker.pkg.dev/kdc-lima/pokeapi/pokeapi:v1
-#
-# O local con buildx:
-#   docker buildx build --platform linux/amd64 -t <IMAGEN> pokeapi/
+# En CI la construye y publica .github/workflows/pokeapi-imagen.yml
+# (GitHub Packages: ghcr.io/kenesparta/pokeapi). A mano, si hace falta:
+#   docker buildx build --platform linux/amd64 \
+#     -t ghcr.io/kenesparta/pokeapi:dev pokeapi/
 
 # ---------- Etapa 1: compilación ----------
 FROM rust:1.96-bookworm AS builder

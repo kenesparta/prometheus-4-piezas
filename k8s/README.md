@@ -31,10 +31,16 @@ cada pieza es un manifiesto legible.
 
 ## Desplegar
 
-El despliegue lo hace el **CI/CD del repositorio (Forgejo/Codeberg)** aplicando
-estos manifiestos contra el cluster (aprovisionado aparte, fuera de este repo);
-aquí no hay scripts de despliegue. La imagen de pokeapi la construye y publica
-en Docker Hub el workflow `.forgejo/workflows/pokeapi-imagen.yml`.
+El despliegue lo hace el **CI/CD del repositorio (GitHub Actions)**: el workflow
+`.github/workflows/desplegar-k8s.yml` aplica estos manifiestos contra el cluster
+(aprovisionado aparte, fuera de este repo) en cada push a `main` que toque `k8s/`;
+aquí no hay scripts de despliegue. La autenticación va por **Workload Identity
+Federation** (token OIDC de GitHub, sin secrets ni llaves): el pool y el rol
+`roles/container.developer` están declarados en el repo de Terraform del cluster
+(`kcd-lima-k8s-kong/terraform/github-actions.tf`). La
+imagen de pokeapi la construye y publica en GitHub Packages
+(`ghcr.io/kenesparta/pokeapi`) el workflow `.github/workflows/pokeapi-imagen.yml`;
+el package debe ser público para que el cluster la baje sin `imagePullSecret`.
 
 A mano, si hace falta (con `kubectl` ya apuntando al cluster):
 
