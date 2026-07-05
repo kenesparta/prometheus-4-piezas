@@ -17,8 +17,10 @@ on:
     branches: [main]
     paths:
       - "k8s/**"
-      # Un cambio de solo-documentación (p. ej. k8s/README.md) no redespliega.
+      # Ni un cambio de solo-documentación (k8s/README.md) ni el helper local
+      # port-forward.sh redespliegan al cluster.
       - "!k8s/**.md"
+      - "!k8s/port-forward.sh"
       - ".github/workflows/desplegar-k8s.yml"
   workflow_dispatch:
 

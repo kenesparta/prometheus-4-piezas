@@ -2,4 +2,4 @@ target/
 .env
 .env.*
 k8s/
-README.md
+*.md
