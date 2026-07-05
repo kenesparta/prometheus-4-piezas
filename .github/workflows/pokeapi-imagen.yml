@@ -15,6 +15,9 @@ on:
     branches: [main]
     paths:
       - "pokeapi/**"
+      # Un cambio de solo-documentación no rebuildea la imagen (~15 min).
+      # (negación dentro de `paths`: no se puede mezclar con `paths-ignore`.)
+      - "!pokeapi/**.md"
       - ".github/workflows/pokeapi-imagen.yml"
   workflow_dispatch:
 

@@ -17,6 +17,8 @@ on:
     branches: [main]
     paths:
       - "k8s/**"
+      # Un cambio de solo-documentación (p. ej. k8s/README.md) no redespliega.
+      - "!k8s/**.md"
       - ".github/workflows/desplegar-k8s.yml"
   workflow_dispatch:
 
