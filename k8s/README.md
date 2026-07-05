@@ -15,7 +15,7 @@ cada pieza es un manifiesto legible.
 | `60-pokeapi.yaml` | 1–4 (demo interactiva) | `pokeapi` (Deployment + Service :3000 + LoadBalancer público) |
 
 > `60-pokeapi.yaml` necesita la imagen publicada y el Secret `pokeapi-redis`
-> antes de aplicarse (instrucciones en `pokeapi/README.md`). El resto de la
+> antes de aplicarse (paso a paso en `pokeapi/USO-IMAGEN.md`). El resto de la
 > demo funciona igual sin él.
 
 ## Requisitos

@@ -44,6 +44,9 @@ server functions con view-models propios.
 
 ## Correr en local
 
+> ¿Solo quieres correr la **imagen ya publicada** (sin compilar)? Mira
+> [`USO-IMAGEN.md`](USO-IMAGEN.md).
+
 Requisitos: toolchain fijado por `rust-toolchain.toml` (1.96 + target wasm),
 `cargo-leptos` y un Redis accesible.
 
@@ -127,6 +130,9 @@ histogram_quantile(0.95, sum(rate(pokeapi_http_duracion_segundos_bucket[5m])) by
 ```
 
 ## Desplegar
+
+> Guía paso a paso para **usar la imagen** (local y Kubernetes):
+> [`USO-IMAGEN.md`](USO-IMAGEN.md).
 
 La imagen la construye y publica en **GitHub Packages (GHCR)** el CI/CD del
 repositorio (workflow `.github/workflows/pokeapi-imagen.yml`) a partir de
