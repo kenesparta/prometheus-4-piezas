@@ -1,5 +1,6 @@
 # Pieza 2 — El servidor: scrapea los targets y guarda series temporales.
-# UI en http://localhost:9090 vía port-forward (/targets, /graph, /alerts).
+# UI en http://localhost:9090 (port-forward) o en la IP pública del Service
+# `prometheus-publico` (LoadBalancer, más abajo): /targets, /graph, /alerts.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -56,4 +57,23 @@ spec:
   ports:
     - name: web
       port: 9090
+      targetPort: 9090
+---
+# IP pública para proyectar la UI de Prometheus durante la charla (las 4 piezas:
+# /targets, el expression browser de PromQL y /alerts). Se mantiene el Service
+# interno `prometheus` de arriba porque Grafana y el scrape lo usan por DNS.
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus-publico
+  namespace: prometheus-demo
+  labels:
+    app: prometheus
+spec:
+  type: LoadBalancer
+  selector:
+    app: prometheus
+  ports:
+    - name: web
+      port: 80
       targetPort: 9090
