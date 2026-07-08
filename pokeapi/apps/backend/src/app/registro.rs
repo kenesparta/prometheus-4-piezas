@@ -4,8 +4,7 @@
 //! después desde el panel. El alta inicia sesión en el mismo paso.
 
 use leptos::prelude::*;
-use leptos_router::components::A;
-use leptos_router::hooks::use_navigate;
+use leptos_router::components::{A, Redirect};
 
 use super::RecursoSesion;
 use super::api::RegistrarCuenta;
@@ -15,18 +14,26 @@ use super::modelos::mensaje_error;
 pub fn PaginaRegistro() -> impl IntoView {
     let accion = ServerAction::<RegistrarCuenta>::new();
     let sesion = expect_context::<RecursoSesion>();
-    let navegar = use_navigate();
 
+    // El alta inicia sesión en el mismo paso. Refrescamos la sesión global y
+    // dejamos que el redirect reactivo de abajo lleve al dashboard cuando esté
+    // cargada (navegar a mano rebotaría a /login: /dashboard vería la sesión
+    // aún vieja durante el refetch).
     Effect::new(move |_| {
         if let Some(Ok(_)) = accion.value().get() {
             sesion.refetch();
-            navegar("/dashboard", Default::default());
         }
     });
 
     let error = move || accion.value().get().and_then(|r| r.err()).map(|e| mensaje_error(&e));
 
     view! {
+        <Suspense fallback=|| ()>
+            {move || {
+                matches!(sesion.get(), Some(Some(_)))
+                    .then(|| view! { <Redirect path="/dashboard"/> })
+            }}
+        </Suspense>
         <section class="tarjeta formulario">
             <h1>"Crear cuenta"</h1>
             <p class="pista">"Entras como VISITOR; un ADMIN puede cambiarte el rol después."</p>

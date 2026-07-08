@@ -1,8 +1,7 @@
 //! Vista de inicio de sesión (admin/123 o cualquier cuenta registrada).
 
 use leptos::prelude::*;
-use leptos_router::components::A;
-use leptos_router::hooks::use_navigate;
+use leptos_router::components::{A, Redirect};
 
 use super::RecursoSesion;
 use super::api::IniciarSesion;
@@ -12,18 +11,27 @@ use super::modelos::mensaje_error;
 pub fn PaginaLogin() -> impl IntoView {
     let accion = ServerAction::<IniciarSesion>::new();
     let sesion = expect_context::<RecursoSesion>();
-    let navegar = use_navigate();
 
+    // Al iniciar sesión con éxito, refresca la sesión global. NO navegamos a
+    // mano: `/dashboard` rebotaría a `/login` mientras el recurso de sesión aún
+    // conserva su valor viejo ("sin sesión") durante el refetch. En su lugar,
+    // el redirect reactivo de abajo lleva al dashboard en cuanto la sesión
+    // (recién iniciada o previa) queda cargada.
     Effect::new(move |_| {
         if let Some(Ok(_)) = accion.value().get() {
             sesion.refetch();
-            navegar("/dashboard", Default::default());
         }
     });
 
     let error = move || accion.value().get().and_then(|r| r.err()).map(|e| mensaje_error(&e));
 
     view! {
+        <Suspense fallback=|| ()>
+            {move || {
+                matches!(sesion.get(), Some(Some(_)))
+                    .then(|| view! { <Redirect path="/dashboard"/> })
+            }}
+        </Suspense>
         <section class="tarjeta formulario">
             <h1>"Iniciar sesión"</h1>
             <ActionForm action=accion>
