@@ -1,16 +1,19 @@
-/* PokeAPI × Prometheus — tema oscuro compacto para proyectar en la charla. */
+/* PokeAPI × Prometheus — tema oscuro en tonos de azul, compacto para proyectar. */
 
 :root {
-  --fondo: #0f1420;
-  --panel: #181f2e;
-  --panel-alto: #1f2940;
-  --borde: #2a3650;
-  --texto: #e8edf7;
-  --texto-suave: #93a1bd;
-  --acento: #ef4444;      /* rojo pokébola */
-  --acento-2: #f59e0b;    /* ámbar Prometheus */
-  --ok: #34d399;
-  --error: #f87171;
+  /* Superficies — azules oscuros (fondo → paneles). */
+  --fondo: #0a1526;
+  --panel: #0e2038;
+  --panel-alto: #16324f;
+  --borde: #244a73;
+  /* Texto — azules claros para contraste sobre el fondo oscuro. */
+  --texto: #e6eefb;
+  --texto-suave: #8fb2dd;
+  /* Acentos — azules vivos (antes rojo pokébola / ámbar Prometheus). */
+  --acento: #3b82f6;      /* azul brillante */
+  --acento-2: #38bdf8;    /* azul cielo */
+  --ok: #22d3ee;          /* cian */
+  --error: #f87171;       /* rojo — se mantiene como señal de error (ver nota) */
 }
 
 * { box-sizing: border-box; }
@@ -39,6 +42,7 @@ a:hover { text-decoration: underline; }
   padding: 0.7rem 1.25rem;
   background: var(--panel);
   border-bottom: 1px solid var(--borde);
+  border-radius: 0;
 }
 
 .marca {
@@ -76,11 +80,12 @@ a:hover { text-decoration: underline; }
   background: var(--panel-alto);
 }
 .chip.mini { font-size: 0.65rem; padding: 0 0.4rem; }
-.rol-admin { background: #7c2d12; border-color: #ea580c; color: #fdba74; }
-.rol-editor { background: #1e3a8a; border-color: #3b82f6; color: #93c5fd; }
-.rol-visitor { background: #14532d; border-color: #22c55e; color: #86efac; }
-.origen-cache { background: #713f12; border-color: var(--acento-2); color: #fcd34d; }
-.origen-api { background: #164e63; border-color: #06b6d4; color: #67e8f9; }
+/* Chips categóricos: todos en azul, diferenciados por tono claro/oscuro. */
+.rol-admin { background: #1e3a8a; border-color: #60a5fa; color: #dbeafe; }
+.rol-editor { background: #075985; border-color: #38bdf8; color: #bae6fd; }
+.rol-visitor { background: #164e63; border-color: #22d3ee; color: #a5f3fc; }
+.origen-cache { background: #075985; border-color: var(--acento-2); color: #bae6fd; }
+.origen-api { background: #1e3a8a; border-color: #60a5fa; color: #dbeafe; }
 
 /* ---- Layout ---- */
 .contenido {
@@ -172,15 +177,17 @@ button.peligro { background: #7f1d1d; border: 1px solid var(--error); }
 .nombre-stat { color: var(--texto-suave); font-size: 0.8rem; }
 .valor-stat { font-variant-numeric: tabular-nums; font-size: 0.85rem; text-align: right; }
 .pista-barra { background: var(--fondo); border-radius: 999px; height: 8px; overflow: hidden; }
-.barra { background: linear-gradient(90deg, var(--acento-2), var(--acento)); height: 100%; border-radius: 999px; }
+/* Barra de progreso de stats. Se escopa a `.pista-barra` para NO colisionar
+   con el navbar, que también usa la clase `.barra`. */
+.pista-barra .barra { background: linear-gradient(90deg, var(--acento-2), var(--acento)); height: 100%; border-radius: 999px; }
 
 /* Colores por tipo (los más comunes). */
-.tipo-fire { border-color: #f97316; color: #fdba74; }
-.tipo-water { border-color: #3b82f6; color: #93c5fd; }
-.tipo-grass { border-color: #22c55e; color: #86efac; }
-.tipo-electric { border-color: #eab308; color: #fde047; }
-.tipo-psychic { border-color: #ec4899; color: #f9a8d4; }
-.tipo-normal { border-color: #a8a29e; color: #d6d3d1; }
+.tipo-fire { border-color: #60a5fa; color: #bfdbfe; }
+.tipo-water { border-color: #38bdf8; color: #bae6fd; }
+.tipo-grass { border-color: #22d3ee; color: #a5f3fc; }
+.tipo-electric { border-color: #7dd3fc; color: #e0f2fe; }
+.tipo-psychic { border-color: #818cf8; color: #c7d2fe; }
+.tipo-normal { border-color: #94a3b8; color: #cbd5e1; }
 
 /* ---- Historial ---- */
 .columna-lateral .encabezado-lateral {
