@@ -14,6 +14,17 @@ pub fn router() -> Router<EstadoServidor> {
     Router::new()
         .route("/metrics", get(metricas))
         .route("/salud", get(salud))
+        .route("/vivo", get(vivo))
+}
+
+/// Liveness/readiness para Kubernetes: solo confirma que el proceso y el
+/// servidor HTTP están en pie. **No toca Redis ni MongoDB a propósito**: si una
+/// dependencia se cae, el pod NO debe reiniciarse ni salir del Service. Así la
+/// app sigue sirviendo (login, `/metrics`, páginas en modo "sin sesión") y la
+/// alerta correspondiente (`PokeapiSinRedis`/`PokeapiSinMongo`) puede dispararse
+/// mientras la app sigue en pie. El estado de las dependencias vive en `/salud`.
+async fn vivo() -> &'static str {
+    "vivo"
 }
 
 /// Pieza 1 en vivo: métricas en texto plano sobre HTTP.

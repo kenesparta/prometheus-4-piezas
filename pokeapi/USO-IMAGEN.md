@@ -13,7 +13,7 @@ nada. Si lo que quieres es desarrollar o compilar desde el código fuente, mira
 | Tags | `latest` (último `main`) y `<sha12>` (commit, inmutable) |
 | Arquitectura | `linux/amd64` (en Apple Silicon corre por emulación) |
 | Puerto | `3000` (HTTP, escucha en `0.0.0.0:3000`) |
-| Endpoints | `/` UI · `/salud` healthcheck · `/metrics` Prometheus |
+| Endpoints | `/` UI · `/vivo` liveness · `/salud` estado deps · `/metrics` Prometheus |
 | La construye | `.github/workflows/pokeapi-imagen.yml` desde `pokeapi/Dockerfile` |
 
 La config de Leptos va **horneada** en la imagen (`LEPTOS_SITE_ADDR=0.0.0.0:3000`,
@@ -187,10 +187,12 @@ spec:
             - name: MONGODB_URI
               valueFrom:
                 secretKeyRef: { name: pokeapi-mongodb, key: MONGODB_URI }
+          # /vivo no toca Redis/Mongo: una caída de una dependencia no reinicia
+          # el pod ni lo saca del Service (la app degrada, no cae).
           readinessProbe:
-            httpGet: { path: /salud, port: http }
+            httpGet: { path: /vivo, port: http }
           livenessProbe:
-            httpGet: { path: /salud, port: http }
+            httpGet: { path: /vivo, port: http }
             initialDelaySeconds: 15
 ---
 apiVersion: v1

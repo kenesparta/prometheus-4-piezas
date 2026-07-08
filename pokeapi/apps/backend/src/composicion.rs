@@ -59,25 +59,32 @@ pub struct CasosPokedex {
 
 pub async fn componer(config: &Configuracion) -> Result<Contenedor> {
     // ---- Infraestructura compartida -------------------------------------
+    // Redis: conexión LAZY con timeouts. Lazy = el arranque NO exige que Redis
+    // esté arriba (se conecta al primer uso), así que una caída de Redis no
+    // impide arrancar. Los timeouts hacen que las operaciones fallen rápido si
+    // Redis no responde, en vez de colgar la petición; el `ConnectionManager`
+    // reconecta solo cuando Redis vuelve.
     let cliente_redis = redis::Client::open(config.redis_url.as_str())
         .context("REDIS_URL no es una URL de Redis válida")?;
-    let redis = ConnectionManager::new(cliente_redis)
-        .await
-        .context("no se pudo conectar a Redis")?;
-    tracing::info!("conexión a Redis establecida");
+    let config_redis = redis::aio::ConnectionManagerConfig::new()
+        .set_connection_timeout(Some(Duration::from_secs(2)))
+        .set_response_timeout(Some(Duration::from_secs(2)));
+    let redis = ConnectionManager::new_lazy_with_config(cliente_redis, config_redis)
+        .context("no se pudo inicializar el gestor de conexión a Redis")?;
+    tracing::info!("gestor de conexión a Redis listo (lazy)");
 
-    // MongoDB guarda los usuarios. `with_uri_str` valida la URI (y resuelve el
-    // SRV en `mongodb+srv://`); el `ping` fuerza la conexión para fallar rápido
-    // al arrancar si la base no está disponible.
-    let cliente_mongo = mongodb::Client::with_uri_str(&config.mongodb_uri)
+    // MongoDB guarda los usuarios. El cliente es lazy (no conecta hasta el
+    // primer uso); acortamos el server-selection para que una caída falle en
+    // ~3 s en vez de esperar el default (~30 s).
+    let mut opciones_mongo = mongodb::options::ClientOptions::parse(&config.mongodb_uri)
         .await
-        .context("MONGODB_URI inválida o no se pudo inicializar el cliente de MongoDB")?;
+        .context("MONGODB_URI inválida")?;
+    opciones_mongo.server_selection_timeout = Some(Duration::from_secs(3));
+    opciones_mongo.connect_timeout = Some(Duration::from_secs(3));
+    let cliente_mongo = mongodb::Client::with_options(opciones_mongo)
+        .context("no se pudo inicializar el cliente de MongoDB")?;
     let mongo = cliente_mongo.database(&config.mongodb_db);
-    mongo
-        .run_command(mongodb::bson::doc! { "ping": 1 })
-        .await
-        .context("no se pudo conectar a MongoDB")?;
-    tracing::info!(db = %config.mongodb_db, "conexión a MongoDB establecida");
+    tracing::info!(db = %config.mongodb_db, "cliente de MongoDB listo (lazy)");
 
     let metricas = Arc::new(Metricas::nuevas().context("no se pudieron registrar las métricas")?);
 
@@ -172,7 +179,12 @@ async fn sembrar_admin(
     match usuarios.guardar_nuevo(&admin).await {
         Ok(()) => tracing::info!("usuario admin creado con rol ADMIN"),
         Err(ErrorRepositorio::YaExiste) => tracing::debug!("el usuario admin ya existía"),
-        Err(error) => return Err(error).context("no se pudo sembrar el usuario admin"),
+        // No-fatal: si Mongo está caído al arrancar, la app igual levanta (modo
+        // resiliente). Se registrará el aviso; al reiniciar con Mongo arriba se
+        // sembrará. No abortamos el arranque por esto.
+        Err(error) => {
+            tracing::warn!(%error, "no se pudo sembrar el usuario admin (¿MongoDB caído?)");
+        }
     }
     Ok(())
 }

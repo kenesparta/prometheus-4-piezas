@@ -56,15 +56,20 @@ spec:
               value: "123"
             - name: RUST_LOG
               value: "info,backend=info"
+          # Las probes apuntan a /vivo (NO a /salud): /vivo solo confirma que el
+          # proceso está en pie, sin tocar Redis ni Mongo. Así, si una base se
+          # cae, el pod NO se reinicia ni sale del Service: la app sigue arriba
+          # (sirviendo /metrics y el login) y la alerta PokeapiSinRedis puede
+          # dispararse. /salud sigue existiendo para diagnóstico manual.
           readinessProbe:
             httpGet:
-              path: /salud
+              path: /vivo
               port: http
             initialDelaySeconds: 5
             periodSeconds: 10
           livenessProbe:
             httpGet:
-              path: /salud
+              path: /vivo
               port: http
             initialDelaySeconds: 15
             periodSeconds: 20
