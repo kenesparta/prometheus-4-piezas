@@ -37,11 +37,11 @@ impl PublicadorEventos for PublicadorIdentidad {
             }
 
             match evento {
-                EventoIdentidad::SesionIniciada { .. } => {
-                    self.metricas.logins.with_label_values(&["exito"]).inc();
+                EventoIdentidad::IntentoLogin { .. } => {
+                    self.metricas.login_intentos.inc();
                 }
-                EventoIdentidad::LoginFallido { .. } => {
-                    self.metricas.logins.with_label_values(&["fallo"]).inc();
+                EventoIdentidad::LoginFallido { motivo, .. } => {
+                    self.metricas.login_errores.with_label_values(&[motivo.como_str()]).inc();
                 }
                 EventoIdentidad::UsuarioRegistrado { .. } => {
                     self.metricas.usuarios_registrados.inc();
@@ -49,7 +49,9 @@ impl PublicadorEventos for PublicadorIdentidad {
                 EventoIdentidad::RolCambiado { .. } => {
                     self.metricas.cambios_rol.inc();
                 }
-                EventoIdentidad::SesionCerrada { .. } => {}
+                // La sesión iniciada/cerrada solo interesa en los logs: el éxito
+                // se deduce de intentos - errores.
+                EventoIdentidad::SesionIniciada { .. } | EventoIdentidad::SesionCerrada { .. } => {}
             }
         }
     }

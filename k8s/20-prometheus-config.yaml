@@ -89,6 +89,15 @@ data:
             annotations:
               summary: "pokeapi no puede hablar con Redis"
 
+          # La app perdió MongoDB, donde viven los usuarios (gauge propio).
+          - alert: PokeapiSinMongo
+            expr: pokeapi_mongodb_disponible == 0
+            for: 1m
+            labels:
+              severity: critical
+            annotations:
+              summary: "pokeapi no puede hablar con MongoDB"
+
           # Regla de DEMO: umbral bajísimo a propósito. En cuanto el público
           # empieza a usar la app (>0.5 req/s sostenidas) pasa a Firing.
           - alert: PokeapiTraficoAltoDemo
@@ -98,3 +107,16 @@ data:
               severity: warning
             annotations:
               summary: "[DEMO] El público está usando la pokeapi (>0.5 req/s)"
+
+          # Regla de DEMO (pieza 4 aplicada a seguridad): detección de fuerza
+          # bruta. Una alerta = una query PromQL + un umbral + un "for". Umbral
+          # bajo a propósito: se enciende tecleando mal la contraseña unas
+          # cuantas veces (>5 passwords incorrectos en 1 min). El motivo del
+          # fallo se distingue en la métrica sin revelárselo nunca al usuario.
+          - alert: PokeapiFuerzaBrutaDemo
+            expr: sum(increase(pokeapi_login_errores_total{motivo="password_incorrecto"}[1m])) > 5
+            for: 30s
+            labels:
+              severity: warning
+            annotations:
+              summary: "[DEMO] Posible fuerza bruta: >5 passwords incorrectos en 1 min"

@@ -22,7 +22,7 @@ use super::dto::{
 };
 use super::puertos::{ErrorHasher, GeneradorTokens, HasherPassword, PublicadorEventos};
 use crate::dominio::errores::ErrorIdentidad;
-use crate::dominio::eventos::EventoIdentidad;
+use crate::dominio::eventos::{EventoIdentidad, MotivoFallo};
 use crate::dominio::modelo::{NombreUsuario, Rol, Sesion, Usuario, validar_password};
 use crate::dominio::repositorio::{
     ErrorRepositorio, RepositorioSesiones, RepositorioUsuarios,
@@ -143,18 +143,26 @@ impl IniciarSesion {
     /// inexistente, nombre mal formado o password incorrecto: no se filtra
     /// cuál de los tres falló (evita enumerar usuarios).
     pub async fn ejecutar(&self, cmd: IniciarSesionCmd) -> Result<VistaSesion, ErrorCasoUso> {
+        // Todo intento cuenta, gane o pierda: se emite antes de resolverlo.
+        self.publicador
+            .publicar(&[EventoIdentidad::IntentoLogin {
+                nombre: cmd.nombre.trim().to_lowercase(),
+                en: Utc::now(),
+            }])
+            .await;
+
         let usuario = match NombreUsuario::nuevo(cmd.nombre.clone()) {
             Ok(nombre) => self.usuarios.por_nombre(&nombre).await?,
             Err(_) => None,
         };
 
         let Some(usuario) = usuario else {
-            self.publicar_fallo(&cmd.nombre).await;
+            self.publicar_fallo(&cmd.nombre, MotivoFallo::UsuarioNoExiste).await;
             return Err(ErrorCasoUso::CredencialesInvalidas);
         };
 
         if !self.hasher.verificar(&cmd.password, usuario.hash_password()) {
-            self.publicar_fallo(&cmd.nombre).await;
+            self.publicar_fallo(&cmd.nombre, MotivoFallo::PasswordIncorrecto).await;
             return Err(ErrorCasoUso::CredencialesInvalidas);
         }
 
@@ -176,10 +184,11 @@ impl IniciarSesion {
         Ok(vista_sesion(&sesion))
     }
 
-    async fn publicar_fallo(&self, nombre: &str) {
+    async fn publicar_fallo(&self, nombre: &str, motivo: MotivoFallo) {
         self.publicador
             .publicar(&[EventoIdentidad::LoginFallido {
                 nombre: nombre.trim().to_lowercase(),
+                motivo,
                 en: Utc::now(),
             }])
             .await;

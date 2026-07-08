@@ -3,7 +3,13 @@ use anyhow::{Context, Result};
 #[derive(Debug, Clone)]
 pub struct Configuracion {
     /// URL de conexión a Redis (`redis://…` o `rediss://…` con TLS).
+    /// Guarda sesiones y el caché de fichas de pokémon.
     pub redis_url: String,
+    /// URI de conexión a MongoDB (`mongodb://…` o `mongodb+srv://…`).
+    /// Guarda los usuarios (la base de datos de la app).
+    pub mongodb_uri: String,
+    /// Nombre de la base de datos de MongoDB.
+    pub mongodb_db: String,
     /// Password inicial del usuario `admin` (se siembra al arrancar).
     pub admin_password: String,
     /// Base de la PokeAPI pública.
@@ -19,6 +25,9 @@ impl Configuracion {
         Ok(Self {
             redis_url: std::env::var("REDIS_URL")
                 .context("la variable REDIS_URL no está definida")?,
+            mongodb_uri: std::env::var("MONGODB_URI")
+                .context("la variable MONGODB_URI no está definida")?,
+            mongodb_db: std::env::var("MONGODB_DB").unwrap_or_else(|_| "pokeapi".to_string()),
             admin_password: std::env::var("ADMIN_PASSWORD").unwrap_or_else(|_| "123".to_string()),
             pokeapi_url_base: std::env::var("POKEAPI_URL_BASE")
                 .unwrap_or_else(|_| "https://pokeapi.co/api/v2".to_string()),

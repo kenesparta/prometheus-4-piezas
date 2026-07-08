@@ -14,9 +14,9 @@ cada pieza es un manifiesto legible.
 | `50-sample-app.yaml` | 1 (bonus, opcional) | `app-ejemplo` instrumentada (:8080) |
 | `60-pokeapi.yaml` | 1–4 (demo interactiva) | `pokeapi` (Deployment + Service :3000 + LoadBalancer público) |
 
-> `60-pokeapi.yaml` necesita la imagen publicada y el Secret `pokeapi-redis`
-> antes de aplicarse (paso a paso en `pokeapi/USO-IMAGEN.md`). El resto de la
-> demo funciona igual sin él.
+> `60-pokeapi.yaml` necesita la imagen publicada y los Secrets `pokeapi-redis`
+> (sesiones/caché) y `pokeapi-mongodb` (usuarios) antes de aplicarse (paso a paso
+> en `pokeapi/USO-IMAGEN.md`). El resto de la demo funciona igual sin él.
 
 ## Requisitos
 

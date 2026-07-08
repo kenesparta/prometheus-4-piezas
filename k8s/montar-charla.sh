@@ -14,7 +14,7 @@
 #
 # Requisitos previos (una sola vez):
 #   - kubectl apuntando al cluster (gcloud container clusters get-credentials …)
-#   - k8s/secrets.local.yaml con el Secret pokeapi-redis (gitignorado)
+#   - k8s/secrets.local.yaml con los Secrets pokeapi-redis y pokeapi-mongodb (gitignorado)
 #   - La imagen ghcr.io/kenesparta/pokeapi debe ser PÚBLICA en GHCR
 # =============================================================================
 set -euo pipefail
@@ -75,16 +75,18 @@ if [[ "${1:-}" == "--estado" ]]; then
   exit 0
 fi
 
-# --- 1) Namespace + Secret de Redis (deben ir ANTES que pokeapi) --------------
-echo "==> 1/4  Namespace y Secret de Redis"
+# --- 1) Namespace + Secrets Redis/Mongo (deben ir ANTES que pokeapi) ----------
+echo "==> 1/4  Namespace y Secrets (Redis + Mongo)"
 kubectl apply -f "$DIR/00-namespace.yaml"
 if [[ -f "$DIR/secrets.local.yaml" ]]; then
   kubectl apply -f "$DIR/secrets.local.yaml"
 else
-  echo "!!  Falta $DIR/secrets.local.yaml (Secret pokeapi-redis con REDIS_URL)."
-  echo "    Créalo con tu URL real, p. ej.:"
+  echo "!!  Falta $DIR/secrets.local.yaml (Secrets pokeapi-redis y pokeapi-mongodb)."
+  echo "    Créalos con tus URLs reales, p. ej.:"
   echo "      kubectl create secret generic pokeapi-redis -n $NS \\"
   echo "        --from-literal=REDIS_URL='rediss://usuario:PASS@host:puerto'"
+  echo "      kubectl create secret generic pokeapi-mongodb -n $NS \\"
+  echo "        --from-literal=MONGODB_URI='mongodb+srv://usuario:PASS@host/...'"
   exit 1
 fi
 

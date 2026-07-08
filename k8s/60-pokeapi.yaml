@@ -9,8 +9,9 @@
 #      primer push hay que hacer el package PÚBLICO (Package settings →
 #      Change visibility); si no, el pod cae en ImagePullBackOff por falta
 #      de imagePullSecret.
-#   2. Secret con la URL de Redis (¡nunca se commitea!); las credenciales
-#      reales viven en k8s/secrets.local.yaml (gitignorado):
+#   2. Secrets con la URL de Redis (sesiones/caché) y la URI de MongoDB
+#      (usuarios) — ¡nunca se commitean! Las credenciales reales viven en
+#      k8s/secrets.local.yaml (gitignorado):
 #        kubectl apply -f k8s/secrets.local.yaml
 apiVersion: apps/v1
 kind: Deployment
@@ -38,11 +39,18 @@ spec:
             - name: http
               containerPort: 3000
           env:
+            # Redis: sesiones y caché de fichas de pokémon.
             - name: REDIS_URL
               valueFrom:
                 secretKeyRef:
                   name: pokeapi-redis
                   key: REDIS_URL
+            # MongoDB: los usuarios (la base de datos de la app).
+            - name: MONGODB_URI
+              valueFrom:
+                secretKeyRef:
+                  name: pokeapi-mongodb
+                  key: MONGODB_URI
             # Password de la demo, tal como se cuenta en la charla (admin/123).
             - name: ADMIN_PASSWORD
               value: "123"

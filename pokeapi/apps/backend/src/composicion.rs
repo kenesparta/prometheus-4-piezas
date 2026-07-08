@@ -23,20 +23,20 @@ use crate::configuracion::Configuracion;
 use crate::mensajeria::identidad_eventos::PublicadorIdentidad;
 use crate::mensajeria::pokedex_eventos::PublicadorPokedex;
 use crate::metricas::Metricas;
-use crate::persistencia::identidad_redis::{
-    RepositorioSesionesRedis, RepositorioUsuariosRedis,
-};
+use crate::persistencia::identidad_mongo::RepositorioUsuariosMongo;
+use crate::persistencia::identidad_redis::RepositorioSesionesRedis;
 use crate::persistencia::pokedex_redis::{CacheFichasRedis, RegistroConsultasRedis};
 use crate::seguridad::{GeneradorTokensUuid, HasherArgon2};
 
-/// Contenedor de dependencias: casos de uso ya cableados + métricas + la
-/// conexión a Redis (para el chequeo de salud).
+/// Contenedor de dependencias: casos de uso ya cableados + métricas + las
+/// conexiones a Redis y MongoDB (para el chequeo de salud).
 #[derive(Clone)]
 pub struct Contenedor {
     pub identidad: CasosIdentidad,
     pub pokedex: CasosPokedex,
     pub metricas: Arc<Metricas>,
     pub redis: ConnectionManager,
+    pub mongo: mongodb::Database,
     pub config: Arc<Configuracion>,
 }
 
@@ -66,11 +66,24 @@ pub async fn componer(config: &Configuracion) -> Result<Contenedor> {
         .context("no se pudo conectar a Redis")?;
     tracing::info!("conexión a Redis establecida");
 
+    // MongoDB guarda los usuarios. `with_uri_str` valida la URI (y resuelve el
+    // SRV en `mongodb+srv://`); el `ping` fuerza la conexión para fallar rápido
+    // al arrancar si la base no está disponible.
+    let cliente_mongo = mongodb::Client::with_uri_str(&config.mongodb_uri)
+        .await
+        .context("MONGODB_URI inválida o no se pudo inicializar el cliente de MongoDB")?;
+    let mongo = cliente_mongo.database(&config.mongodb_db);
+    mongo
+        .run_command(mongodb::bson::doc! { "ping": 1 })
+        .await
+        .context("no se pudo conectar a MongoDB")?;
+    tracing::info!(db = %config.mongodb_db, "conexión a MongoDB establecida");
+
     let metricas = Arc::new(Metricas::nuevas().context("no se pudieron registrar las métricas")?);
 
     // ---- BC identidad -----------------------------------------------------
     let usuarios: Arc<dyn RepositorioUsuarios> =
-        Arc::new(RepositorioUsuariosRedis::nuevo(redis.clone(), metricas.clone()));
+        Arc::new(RepositorioUsuariosMongo::nuevo(&mongo, metricas.clone()));
     let sesiones: Arc<dyn RepositorioSesiones> =
         Arc::new(RepositorioSesionesRedis::nuevo(redis.clone(), metricas.clone()));
     let hasher: Arc<dyn HasherPassword> = Arc::new(HasherArgon2);
@@ -132,13 +145,14 @@ pub async fn componer(config: &Configuracion) -> Result<Contenedor> {
 
     // ---- Arranque -----------------------------------------------------------
     sembrar_admin(&usuarios, &hasher, config).await?;
-    lanzar_medidor_periodico(sesiones, usuarios, redis.clone(), metricas.clone());
+    lanzar_medidor_periodico(sesiones, usuarios, redis.clone(), mongo.clone(), metricas.clone());
 
     Ok(Contenedor {
         identidad,
         pokedex,
         metricas,
         redis,
+        mongo,
         config: Arc::new(config.clone()),
     })
 }
@@ -164,11 +178,12 @@ async fn sembrar_admin(
 }
 
 /// Tarea de fondo que refresca cada 15 s los gauges (sesiones activas,
-/// usuarios por rol, disponibilidad de Redis).
+/// usuarios por rol, disponibilidad de Redis y de MongoDB).
 fn lanzar_medidor_periodico(
     sesiones: Arc<dyn RepositorioSesiones>,
     usuarios: Arc<dyn RepositorioUsuarios>,
     redis: ConnectionManager,
+    mongo: mongodb::Database,
     metricas: Arc<Metricas>,
 ) {
     tokio::spawn(async move {
@@ -198,6 +213,9 @@ fn lanzar_medidor_periodico(
             let pong: redis::RedisResult<String> =
                 redis::cmd("PING").query_async(&mut con).await;
             metricas.redis_disponible.set(i64::from(pong.is_ok()));
+
+            let ping_mongo = mongo.run_command(mongodb::bson::doc! { "ping": 1 }).await;
+            metricas.mongodb_disponible.set(i64::from(ping_mongo.is_ok()));
         }
     });
 }

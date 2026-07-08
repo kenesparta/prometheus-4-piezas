@@ -35,14 +35,27 @@ async fn metricas(State(estado): State<EstadoServidor>) -> Response {
 async fn salud(State(estado): State<EstadoServidor>) -> Response {
     let mut con = estado.contenedor.redis.clone();
     let pong: redis::RedisResult<String> = redis::cmd("PING").query_async(&mut con).await;
+    let redis_ok = pong.is_ok();
 
-    match pong {
-        Ok(_) => (StatusCode::OK, axum::Json(json!({ "estado": "ok", "redis": "ok" })))
-            .into_response(),
-        Err(error) => (
-            StatusCode::SERVICE_UNAVAILABLE,
-            axum::Json(json!({ "estado": "degradado", "redis": error.to_string() })),
-        )
-            .into_response(),
-    }
+    let ping_mongo = estado
+        .contenedor
+        .mongo
+        .run_command(mongodb::bson::doc! { "ping": 1 })
+        .await;
+    let mongo_ok = ping_mongo.is_ok();
+
+    let (codigo, estado_txt) = if redis_ok && mongo_ok {
+        (StatusCode::OK, "ok")
+    } else {
+        (StatusCode::SERVICE_UNAVAILABLE, "degradado")
+    };
+    (
+        codigo,
+        axum::Json(json!({
+            "estado": estado_txt,
+            "redis": if redis_ok { "ok" } else { "caído" },
+            "mongo": if mongo_ok { "ok" } else { "caído" },
+        })),
+    )
+        .into_response()
 }

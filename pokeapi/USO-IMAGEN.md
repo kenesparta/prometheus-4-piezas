@@ -17,8 +17,9 @@ nada. Si lo que quieres es desarrollar o compilar desde el código fuente, mira
 | La construye | `.github/workflows/pokeapi-imagen.yml` desde `pokeapi/Dockerfile` |
 
 La config de Leptos va **horneada** en la imagen (`LEPTOS_SITE_ADDR=0.0.0.0:3000`,
-etc.): no hace falta pasar esas variables. Lo único **obligatorio** es `REDIS_URL`
-apuntando a un Redis accesible; el resto tiene default (ver [Variables](#variables)).
+etc.): no hace falta pasar esas variables. Lo **obligatorio** es `REDIS_URL`
+(sesiones y caché) y `MONGODB_URI` (usuarios), apuntando a un Redis y un MongoDB
+accesibles; el resto tiene default (ver [Variables](#variables)).
 
 ```bash
 docker pull ghcr.io/kenesparta/pokeapi:latest
@@ -29,7 +30,7 @@ docker pull ghcr.io/kenesparta/pokeapi:latest
 
 ## En local (Docker)
 
-La app necesita un Redis. Lo más simple es levantar ambos juntos.
+La app necesita un Redis y un MongoDB. Lo más simple es levantar los tres juntos.
 
 ### Opción A — Docker Compose (recomendada)
 
@@ -42,41 +43,51 @@ services:
     # Publica 6379 solo si quieres inspeccionar con redis-cli desde el host.
     ports: ["6379:6379"]
 
+  mongo:
+    image: mongo:7
+    # Publica 27017 solo si quieres inspeccionar con mongosh desde el host.
+    ports: ["27017:27017"]
+
   pokeapi:
     image: ghcr.io/kenesparta/pokeapi:latest
     # platform: linux/amd64   # descoméntalo en Apple Silicon para silenciar el aviso
     ports: ["3000:3000"]
     environment:
-      REDIS_URL: redis://redis:6379   # 'redis' = nombre del servicio de arriba
+      REDIS_URL: redis://redis:6379     # 'redis' = nombre del servicio de arriba
+      MONGODB_URI: mongodb://mongo:27017 # 'mongo' = nombre del servicio de arriba
       ADMIN_PASSWORD: "123"
       RUST_LOG: "info,backend=info"
-    depends_on: [redis]
+    depends_on: [redis, mongo]
 ```
 
 → http://localhost:3000 (entra con `admin` / `123`).
 
 ### Opción B — `docker run`
 
-Redis y pokeapi en una red compartida, para que se vean por nombre:
+Redis, MongoDB y pokeapi en una red compartida, para que se vean por nombre:
 
 ```bash
 docker network create pokeapi-net
 
 docker run -d --name redis --network pokeapi-net redis:7-alpine
+docker run -d --name mongo --network pokeapi-net mongo:7
 
 docker run --rm --network pokeapi-net -p 3000:3000 \
   -e REDIS_URL=redis://redis:6379 \
+  -e MONGODB_URI=mongodb://mongo:27017 \
   -e ADMIN_PASSWORD=123 \
   ghcr.io/kenesparta/pokeapi:latest
 
 # Limpieza al terminar:
-#   docker rm -f redis && docker network rm pokeapi-net
+#   docker rm -f redis mongo && docker network rm pokeapi-net
 ```
 
-> ¿Ya tienes un Redis (local o en la nube)? Sáltate el contenedor de Redis y
-> apunta `REDIS_URL` a él:
-> - Redis en el **host** (Docker Desktop): `-e REDIS_URL=redis://host.docker.internal:6379`
-> - Redis en la **nube** con TLS: `-e REDIS_URL=rediss://usuario:PASSWORD@host:puerto`
+> ¿Ya tienes un Redis o un MongoDB (local o en la nube)? Sáltate ese contenedor
+> y apunta la variable a tu instancia:
+> - En el **host** (Docker Desktop): `redis://host.docker.internal:6379`,
+>   `mongodb://host.docker.internal:27017`
+> - En la **nube** con TLS: `rediss://usuario:PASSWORD@host:puerto`,
+>   `mongodb+srv://usuario:PASSWORD@host/...`
 
 ### Comprobar
 
@@ -96,19 +107,22 @@ curl -s localhost:3000/api/pokemon/pikachu | jq '{nombre, origen}'
 La imagen ya está cableada en [`k8s/60-pokeapi.yaml`](../k8s/60-pokeapi.yaml):
 Deployment + Service interno (`pokeapi:3000`, el target que scrapea Prometheus) +
 Service público (`pokeapi-publico`, LoadBalancer). `REDIS_URL` sale del Secret
-`pokeapi-redis`.
+`pokeapi-redis` y `MONGODB_URI` del Secret `pokeapi-mongodb`.
 
 ```bash
 # 0. (una vez) el package de GHCR debe ser PÚBLICO; si no → ImagePullBackOff.
 
-# 1. Namespace + Secret con la URL de Redis.
+# 1. Namespace + Secrets con las URLs de Redis y MongoDB.
 kubectl apply -f k8s/00-namespace.yaml
 kubectl apply -f k8s/secrets.local.yaml      # gitignorado; credenciales reales
 
-#    ...o crea el Secret a mano (placeholder — pon tu URL real):
+#    ...o crea los Secrets a mano (placeholder — pon tus URLs reales):
 kubectl create secret generic pokeapi-redis \
   --namespace prometheus-demo \
   --from-literal=REDIS_URL='rediss://usuario:PASSWORD@host:puerto'
+kubectl create secret generic pokeapi-mongodb \
+  --namespace prometheus-demo \
+  --from-literal=MONGODB_URI='mongodb+srv://usuario:PASSWORD@host/...'
 
 # 2. Desplegar la app.
 kubectl apply -f k8s/60-pokeapi.yaml
@@ -141,6 +155,14 @@ type: Opaque
 stringData:
   REDIS_URL: rediss://usuario:PASSWORD@host:puerto   # pon TU URL real (no la commitees)
 ---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: pokeapi-mongodb
+type: Opaque
+stringData:
+  MONGODB_URI: mongodb+srv://usuario:PASSWORD@host/...  # pon TU URI real (no la commitees)
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -162,6 +184,9 @@ spec:
             - name: REDIS_URL
               valueFrom:
                 secretKeyRef: { name: pokeapi-redis, key: REDIS_URL }
+            - name: MONGODB_URI
+              valueFrom:
+                secretKeyRef: { name: pokeapi-mongodb, key: MONGODB_URI }
           readinessProbe:
             httpGet: { path: /salud, port: http }
           livenessProbe:
@@ -207,12 +232,14 @@ Se pasan con `-e` (Docker) o en `env:` (K8s).
 
 | Variable | ¿Oblig.? | Default | Qué es |
 |---|---|---|---|
-| `REDIS_URL` | **sí** | — | `redis://…` o `rediss://…` (TLS) con credenciales |
+| `REDIS_URL` | **sí** | — | `redis://…` o `rediss://…` (TLS); sesiones y caché |
+| `MONGODB_URI` | **sí** | — | `mongodb://…` o `mongodb+srv://…` (Atlas); usuarios |
+| `MONGODB_DB` | no | `pokeapi` | Nombre de la base de datos en Mongo |
 | `ADMIN_PASSWORD` | no | `123` | Password del usuario `admin` sembrado al arrancar |
 | `POKEAPI_URL_BASE` | no | `https://pokeapi.co/api/v2` | Base de la PokeAPI |
 | `SESION_TTL_SEGUNDOS` | no | `86400` | TTL (deslizante) de las sesiones en Redis |
 | `CACHE_TTL_SEGUNDOS` | no | `600` | TTL del caché de fichas en Redis |
 | `RUST_LOG` | no | `info` | Nivel de logs (p. ej. `info,backend=debug`) |
 
-Si falta `REDIS_URL`, el contenedor arranca y sale con el error
-`la variable REDIS_URL no está definida`.
+Si falta `REDIS_URL` o `MONGODB_URI`, el contenedor arranca y sale con el error
+`la variable REDIS_URL no está definida` (o `MONGODB_URI`, respectivamente).
