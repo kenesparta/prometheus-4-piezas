@@ -4,3 +4,6 @@
 
 # Credenciales locales (Secrets de k8s con valores reales) — nunca al repo
 *.local.yaml
+
+# Entorno Python local que crea slides-typst/gen-qr.sh (segno) — no versionar
+slides-typst/.qrvenv/

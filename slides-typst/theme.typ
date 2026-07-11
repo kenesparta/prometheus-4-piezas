@@ -7,7 +7,7 @@
 // La URL pública de la app que usa el público (slides/13-demo-entra.typ).
 // El LoadBalancer recibe una IP nueva cada vez que se recrea el cluster:
 //   kubectl -n prometheus-demo get svc pokeapi-publico
-#let url-app = "http://<IP-DE-LA-APP>"
+#let url-app = "http://34.55.181.146"
 
 // ── Paleta ───────────────────────────────────────────────────────────────
 #let prom-orange = rgb("#E6522C") // naranja Prometheus

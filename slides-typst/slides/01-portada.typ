@@ -13,5 +13,5 @@
   #v(1fr)
   #line(length: 100%, stroke: 1pt + rgb("#272B33"))
   #v(16pt)
-  #text(size: 14pt, fill: dark-muted)[20 min de charla + 10 de demo en vivo #h(1fr) prometheus.io]
+  #text(size: 14pt, fill: dark-muted)[Ken Esparta #h(1fr) prometheus.io]
 ]

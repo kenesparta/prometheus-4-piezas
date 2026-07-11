@@ -186,7 +186,7 @@ Y encima: **Grafana** (dashboards), **OpenTelemetry** (instrumentación, ya grad
 
 # Ahora, ustedes.
 
-## `http://<IP-DE-LA-APP>`
+## `http://34.55.181.146`
 
 Usuario `admin` / `123` — o regístrate con lo que quieras.
 
