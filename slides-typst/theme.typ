@@ -3,6 +3,12 @@
 //   #import "../theme.typ": *
 // El punto de entrada (slides.typ) aplica las reglas globales con #show: setup.
 
+// ── ⚠️ EDITAR ANTES DE CADA CHARLA ───────────────────────────────────────
+// La URL pública de la app que usa el público (slides/13-demo-entra.typ).
+// El LoadBalancer recibe una IP nueva cada vez que se recrea el cluster:
+//   kubectl -n prometheus-demo get svc pokeapi-publico
+#let url-app = "http://<IP-DE-LA-APP>"
+
 // ── Paleta ───────────────────────────────────────────────────────────────
 #let prom-orange = rgb("#E6522C") // naranja Prometheus
 #let prom-ember = rgb("#C64A22") // naranja oscuro: énfasis sobre fondo claro
@@ -117,8 +123,10 @@
   text(size: 0.72em, weight: 700, fill: white, tracking: 0.04em, txt),
 )
 
-// Franja "DEMO": qué se abre en vivo (URL en localhost) y qué se ve.
-#let demo-strip(body) = block(
+// Franja de demo: qué se abrirá en vivo (URL en localhost) y qué se verá.
+// La demo va toda al final, en un bloque de 10 min, así que en las diapositivas
+// de las piezas la etiqueta es "EN LA DEMO" (una promesa, no algo que se abre ya).
+#let demo-strip(label: "EN LA DEMO", body) = block(
   width: 100%,
   fill: dark-bg,
   radius: 10pt,
@@ -138,7 +146,7 @@
       fill: prom-orange,
       radius: 4pt,
       inset: (x: 8pt, y: 4.5pt),
-      text(size: 11pt, weight: 700, fill: white, tracking: 0.12em)[DEMO],
+      text(size: 11pt, weight: 700, fill: white, tracking: 0.12em, label),
     ),
     text(size: 16pt, fill: dark-fg, body),
   )
@@ -232,7 +240,9 @@
 }
 
 // De lo simple a lo útil: el panel de queries de la pieza 3.
-#let promql-panel(steps) = block(
+// `numerar: false` cambia el número por una viñeta, para listas de queries
+// que no son una escalera (p. ej. las de la app en la pieza 3 bis).
+#let promql-panel(steps, numerar: true) = block(
   width: 100%,
   fill: soft,
   stroke: 1pt + hairline,
@@ -247,13 +257,46 @@
     ..steps
       .enumerate()
       .map(((i, s)) => (
-        text(font: mono, size: 14pt, weight: 700, fill: prom-orange, str(i + 1)),
+        text(
+          font: mono,
+          size: 14pt,
+          weight: 700,
+          fill: prom-orange,
+          if numerar { str(i + 1) } else { "›" },
+        ),
         text(font: mono, size: 13.5pt, s.first()),
         text(size: 12.5pt, fill: muted, s.last()),
       ))
       .flatten(),
   )
 ]
+
+// Una dependencia de la app de la demo (Mongo, Redis, la PokeAPI pública).
+#let dep-card(nombre, papel) = block(
+  width: 100%,
+  fill: white,
+  stroke: 1pt + hairline,
+  radius: 10pt,
+  inset: (x: 13pt, y: 11pt),
+)[
+  #text(size: 15.5pt, weight: 700, nombre)
+  #v(3pt)
+  #text(size: 12.5pt, fill: muted, papel)
+]
+
+// Las reglas de alerta de la app: nombre + qué vigila.
+#let alertas-tabla(filas) = grid(
+  columns: (auto, 1fr),
+  column-gutter: 22pt,
+  row-gutter: 11pt,
+  align: (left + horizon, left + horizon),
+  ..filas
+    .map(f => (
+      text(font: mono, size: 13.5pt, weight: 700, fill: prom-ember, f.first()),
+      text(size: 15pt, fill: muted, f.last()),
+    ))
+    .flatten(),
+)
 
 #let seguir-card(kicker, body) = block(
   width: 100%,

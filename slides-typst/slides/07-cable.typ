@@ -10,8 +10,12 @@ scrape_configs:
   - job_name: 'node'
     static_configs:
       - targets: ['node-exporter:9100']
+
+  - job_name: 'pokeapi'          # nuestra app, un target más
+    static_configs:
+      - targets: ['pokeapi:3000']
 ```
 
   #v(1fr)
-  #callout["Ve a `node-exporter:9100` cada 15 s." Eso es todo.]
+  #callout["Ve a estas direcciones cada 15 s." Eso es todo.]
 ]
